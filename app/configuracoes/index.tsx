@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiFetch } from '../../services/api';
+import { API_ROUTES, apiFetch } from '../../services/api';
 import {
   View,
   Text,
@@ -149,7 +149,7 @@ export default function ConfiguracoesScreen() {
     try {
       setCarregandoSenha(true);
 
-      const resposta = await apiFetch(`/Usuario/update-senha/${usuarioId}`, {
+      const resposta = await apiFetch(`${API_ROUTES.USUARIO.ATUALIZAR}${usuarioId}`, {
         method: 'PUT',
         body: JSON.stringify({
           senha_atual: senhaAtual,
@@ -190,7 +190,7 @@ export default function ConfiguracoesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiFetch(`/delet/${usuarioId}`, {
+              await apiFetch(`${API_ROUTES.USUARIO.DELETAR}${usuarioId}`, {
                 method: 'DELETE',
               });
 

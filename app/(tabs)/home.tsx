@@ -67,11 +67,10 @@ const MODOS_GRAFICO: { key: TipoGrafico; label: string }[] = [
 function selecionarMetaImportante(metas: MetaApi[]): MetaApi | null {
   if (!metas || metas.length === 0) return null;
 
-  // CORREÇÃO: Ordenar por DATA (vencimento mais próximo)
   const metasOrdenadas = [...metas].sort((a, b) => {
     const dataA = new Date(a.data_meta || '').getTime();
     const dataB = new Date(b.data_meta || '').getTime();
-    return dataA - dataB;
+    return dataA - dataB; // Menor data (mais próxima) primeiro
   });
 
   return metasOrdenadas[0];
@@ -89,11 +88,10 @@ function calcularTotalConsumido(consumos: any[]): number {
  */
 function formatarData(dataIso?: string): string {
   if (!dataIso) return '—';
-  const d = new Date(dataIso);
-  if (Number.isNaN(d.getTime())) return dataIso;
-  const dia = String(d.getDate()).padStart(2, '0');
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  return `${dia}/${mes}/${d.getFullYear()}`;
+  const partes = dataIso.split('T')[0].split('-');
+  if (partes.length !== 3) return dataIso;
+  const [ano, mes, dia] = partes;
+  return `${dia}/${mes}/${ano}`;
 }
 
 // ─────────────────────────────────────────────

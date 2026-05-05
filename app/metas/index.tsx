@@ -21,7 +21,6 @@ import { theme } from '../../constants/theme';
 type MetaItem = {
   id: number;
   objetivo: string;
-  descricao: string;
   valorLimite: string;
   dataFinal: string;
 };
@@ -55,7 +54,6 @@ export default function MetasScreen() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [objetivo, setObjetivo] = useState('');
-  const [descricao, setDescricao] = useState('');
   const [valorLimite, setValorLimite] = useState('');
   const [dataFinal, setDataFinal] = useState('');
   const [metaExpandida, setMetaExpandida] = useState<number | null>(null);
@@ -86,10 +84,13 @@ export default function MetasScreen() {
   }
 
   function formatarDataApi(data: string) {
-    if (!data) return '';
-    const dataObj = new Date(data);
-    return Number.isNaN(dataObj.getTime()) ? data : dataObj.toLocaleDateString('pt-BR');
-  }
+  if (!data) return '';
+  // Divide a string para evitar que o fuso horário altere o dia
+  const partes = data.split('T')[0].split('-'); 
+  if (partes.length !== 3) return data;
+  const [ano, mes, dia] = partes;
+  return `${dia}/${mes}/${ano}`;
+}
 
   function formatarMoeda(texto: string) {
     const numeros = texto.replace(/\D/g, '');
@@ -123,22 +124,6 @@ export default function MetasScreen() {
     return `${ano}-${mes}-${dia}`;
   }
 
-  async function pegarDescricoesLocais() {
-    const descricoesSalvas = await AsyncStorage.getItem('descricoes_metas');
-    return descricoesSalvas ? JSON.parse(descricoesSalvas) : {};
-  }
-
-  async function salvarDescricaoLocal(id: number, texto: string) {
-    const descricoes = await pegarDescricoesLocais();
-    descricoes[id] = texto;
-    await AsyncStorage.setItem('descricoes_metas', JSON.stringify(descricoes));
-  }
-
-  async function removerDescricaoLocal(id: number) {
-    const descricoes = await pegarDescricoesLocais();
-    delete descricoes[id];
-    await AsyncStorage.setItem('descricoes_metas', JSON.stringify(descricoes));
-  }
 
  const carregarMetas = useCallback(async () => {
   try {
@@ -155,7 +140,6 @@ export default function MetasScreen() {
       return {
         id: idMeta,
         objetivo: item.objetivo || 'Sem objetivo',
-        descricao: item.descricao || 'Sem descrição.',
         valorLimite: formatarValorApi(item.valor_limit),
         dataFinal: formatarDataApi(item.data_meta),
       };
@@ -190,7 +174,6 @@ export default function MetasScreen() {
 
       const corpo = {
         objetivo: objetivo.trim(),
-        descricao: descricao.trim(), // Agora a descrição é enviada ao banco
         valor_limit: Number(limparMoedaParaNumero(valorLimite)),
         id_usuario: Number(usuarioId),
         data_meta: converterDataParaApi(dataFinal), 
@@ -217,7 +200,6 @@ export default function MetasScreen() {
       }
 
       setObjetivo('');
-      setDescricao('');
       setValorLimite('');
       setDataFinal('');
 
@@ -246,8 +228,6 @@ export default function MetasScreen() {
       await apiFetch(API_ROUTES.METAS.DELETAR(id), {
         method: 'DELETE',
       });
-
-      await removerDescricaoLocal(id);
 
       setMetas((anterior) => anterior.filter((item) => item.id !== id));
 
@@ -307,15 +287,6 @@ export default function MetasScreen() {
                 style={styles.input}
               />
 
-              <Text style={styles.fieldLabel}>Descrição:</Text>
-              <TextInput
-                value={descricao}
-                onChangeText={setDescricao}
-                placeholder="Digite a descrição"
-                placeholderTextColor={theme.colors.placeholder}
-                style={styles.input}
-                multiline
-              />
 
               <Text style={styles.fieldLabel}>Valor Limite:</Text>
               <TextInput
@@ -362,23 +333,6 @@ export default function MetasScreen() {
                     <Text style={styles.infoValue}>Valor Limite: {item.valorLimite}</Text>
                     <Text style={styles.infoValue}>Data Limite: {item.dataFinal}</Text>
 
-                    <Text
-                      style={styles.descriptionText}
-                      numberOfLines={metaExpandida === item.id ? undefined : 1}
-                    >
-                      Descrição: {item.descricao}
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.expandButton}
-                      onPress={() =>
-                        setMetaExpandida(metaExpandida === item.id ? null : item.id)
-                      }
-                    >
-                      <Text style={styles.expandButtonText}>
-                        {metaExpandida === item.id ? 'Ver menos' : 'Ver mais'}
-                      </Text>
-                    </TouchableOpacity>
 
                     <TouchableOpacity style={styles.deleteButton} onPress={() => excluirMeta(item.id)}>
                       <Text style={styles.deleteButtonText}>Excluir Meta</Text>

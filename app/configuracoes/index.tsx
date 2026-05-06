@@ -18,6 +18,9 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../../constants/theme';
+import { supabase } from '../../services/supabase';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 
 export default function ConfiguracoesScreen() {
   const router = useRouter();
@@ -71,7 +74,8 @@ export default function ConfiguracoesScreen() {
     }
   }
 
-  async function escolherFoto() {
+async function escolherFoto() {
+  try {
     const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissao.granted) {
@@ -80,17 +84,46 @@ export default function ConfiguracoesScreen() {
     }
 
     const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'], // web-safe
       allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.7,
     });
 
-    if (!resultado.canceled) {
-      setFotoPerfil(resultado.assets[0].uri);
-    }
-  }
+    if (resultado.canceled) return;
 
+    const asset = resultado.assets[0];
+
+    if (!usuarioId) {
+      Alert.alert('Erro', 'Usuário não encontrado.');
+      return;
+    }
+
+    const fileName = `perfil_${usuarioId}.jpg`;
+
+    // 👇 MOBILE FUNCIONA COM BLOB
+    const response = await fetch(asset.uri);
+    const blob = await response.blob();
+
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, blob, {
+        upsert: true,
+        contentType: 'image/jpeg',
+      });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+
+    setFotoPerfil(`${data.publicUrl}?t=${Date.now()}`);
+
+  } catch (err) {
+    console.log('ERRO REAL AGORA:', err);
+    Alert.alert('Erro', 'Falha ao enviar imagem.');
+  }
+}
   async function salvarPerfil() {
     if (!usuarioId) {
       Alert.alert('Erro', 'Usuário não encontrado.');

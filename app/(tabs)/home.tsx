@@ -479,7 +479,7 @@ function MenuLateralHome({
   router: ReturnType<typeof useRouter>;
 }) {
   async function sair() {
-    await AsyncStorage.clear();
+    await AsyncStorage.removeItem('usuario');
     router.replace('/(auth)/login');
   }
 
